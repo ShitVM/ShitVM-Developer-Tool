@@ -16,7 +16,7 @@ include_directories("./include")
 file(GLOB_RECURSE SOURCE_LIST "./src/*.cpp")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "./bin")
 
-add_executable(${PROJECT_NAME} ${SOURCE_LIST})
+add_executable(${PROJECT_NAME} WIN32 ${SOURCE_LIST})
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
 	check_ipo_supported(RESULT isIPOSupported)
