@@ -41,3 +41,7 @@ bool CheckShitVMProcessValid() noexcept {
 	}
 	return true;
 }
+
+bool ReadShitVMMemory(void* buffer, const void* address, std::size_t size) {
+	return ReadProcessMemory(ShitVMProcess, address, buffer, size, nullptr);
+}

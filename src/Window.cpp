@@ -38,7 +38,11 @@ Window::operator bool() const noexcept {
 
 LRESULT Window::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
-	case WM_COMMAND: return Children[LOWORD(wParam)].Callback(this, message, wParam, lParam);
+	case WM_COMMAND: {
+		const auto& callback = Children[LOWORD(wParam)].Callback;
+		if (callback) return callback(this, message, wParam, lParam);
+		else return 0;
+	}
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		const HDC dc = BeginPaint(handle, &ps);

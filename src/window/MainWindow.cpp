@@ -11,7 +11,7 @@ LRESULT MainWindow::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lP
 	switch (message) {
 	case WM_GETMINMAXINFO: {
 		LPMINMAXINFO min = reinterpret_cast<LPMINMAXINFO>(lParam);
-		min->ptMinTrackSize.x = 640;
+		min->ptMinTrackSize.x = 510;
 		min->ptMinTrackSize.y = 480;
 		return 0;
 	}
