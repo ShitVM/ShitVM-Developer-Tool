@@ -1,0 +1,3 @@
+[submodule "ShitVM"]
+	path = ShitVM
+	url = https://github.com/ShitVM/ShitVM.git
