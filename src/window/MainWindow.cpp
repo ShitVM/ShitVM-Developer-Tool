@@ -17,3 +17,10 @@ LRESULT MainWindow::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lP
 	}
 	return Window::Callback(handle, message, wParam, lParam);
 }
+
+void MainWindow::Initialize() {
+	AddChild(CreateButton(this, "Find ShitVM Process", 15, 15, 200, 50, CallbackLambda() {
+		MessageBox(nullptr, "test", "test", MB_OK);
+		return 0;
+	})).SetFont(static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
+}

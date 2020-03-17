@@ -4,7 +4,7 @@
 
 class MainWindow final : public Window {
 public:
-	MainWindow() = default;
+	MainWindow() noexcept = default;
 	MainWindow(const MainWindow&) = delete;
 	virtual ~MainWindow() override = default;
 
@@ -15,4 +15,6 @@ public:
 
 public:
 	virtual LRESULT Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam) override;
+	
+	virtual void Initialize() override;
 };

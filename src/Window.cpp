@@ -4,14 +4,7 @@
 
 #include <stdexcept>
 #include <utility>
-#include "..\include\Window.hpp"
 
-Window::Window() {
-	Handle = CreateWindow("window", Title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, nullptr, nullptr, Instance, nullptr);
-	if (!Handle) throw std::runtime_error("Failed to create the window");
-	SetWindowLongPtr(Handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
-
-}
 Window::Window(Window&& window) noexcept
 	: Handle(window.Handle), Children(std::move(window.Children)) {
 	window.Handle = nullptr;
@@ -43,11 +36,32 @@ Window::operator bool() const noexcept {
 }
 
 LRESULT Window::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam) {
+	switch (message) {
+	case WM_COMMAND: return Children[LOWORD(wParam)].Callback(this, message, wParam, lParam);
+	}
+
 	return DefWindowProc(handle, message, wParam, lParam);
 }
 
-void Window::Show(int value) noexcept {
+void Window::Create() {
+	if (!Handle) {
+		Handle = CreateWindow("window", Title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, nullptr, nullptr, Instance, nullptr);
+		if (!Handle) throw std::runtime_error("Failed to create the window");
+		SetWindowLongPtr(Handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+
+		Initialize();
+	}
+}
+void Window::Show(int value) {
+	Create();
 	ShowWindow(Handle, value);
+}
+
+Child& Window::AddChild(const Child& child) {
+	Child& result = Children.emplace_back(child);
+	SetParent(child.Handle, Handle);
+	SetMenu(child.Handle, reinterpret_cast<HMENU>(Children.size() - 1));
+	return result;
 }
 
 bool RegisterWindow() noexcept {

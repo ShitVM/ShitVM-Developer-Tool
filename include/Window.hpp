@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Child.hpp>
+
 #include <vector>
 
 #include <Windows.h>
@@ -7,10 +9,10 @@
 class Window {
 public:
 	HWND Handle = nullptr;
-	std::vector<HWND> Children;
+	std::vector<Child> Children;
 
 public:
-	Window();
+	Window() noexcept = default;
 	Window(Window&& window) noexcept;
 	virtual ~Window();
 
@@ -23,7 +25,11 @@ public:
 public:
 	virtual LRESULT Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam);
 
-	void Show(int value) noexcept;
+	void Create();
+	virtual void Initialize() = 0;
+	void Show(int value);
+
+	Child& AddChild(const Child& child);
 };
 
 bool RegisterWindow() noexcept;
