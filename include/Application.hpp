@@ -7,3 +7,5 @@ extern HINSTANCE Instance;
 extern int CmdShow;
 
 bool Initialize(HINSTANCE instance, int cmdShow) noexcept;
+
+int Run();

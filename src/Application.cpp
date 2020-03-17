@@ -11,3 +11,13 @@ bool Initialize(HINSTANCE instance, int cmdShow) noexcept {
 
 	return RegisterWindow();
 }
+
+int Run() {
+	MSG message;
+	while (GetMessage(&message, nullptr, 0, 0)) {
+		TranslateMessage(&message);
+		DispatchMessage(&message);
+	}
+
+	return static_cast<int>(message.wParam);
+}
