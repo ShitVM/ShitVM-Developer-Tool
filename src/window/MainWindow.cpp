@@ -25,14 +25,23 @@ LRESULT MainWindow::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lP
 
 void MainWindow::Initialize() {
 	AddChild(CreateButton(this, "Attach to ShitVM", 15, 40, 200, 50, CallbackLambda() {
-		const bool result = FindShitVMProcess();
+		const int result = FindShitVMProcess();
 		window->Invalidate();
-		if (result) {
+		switch (result) {
+		case 0:
 			window->Children[1].Enable();
 			MessageBox(window->Handle, "Successfully attached to the process", Title, MB_OK | MB_ICONINFORMATION);
-		} else {
+			break;
+
+		case 1:
 			window->Children[1].Disable();
-			MessageBox(window->Handle, "Failed to attach to the process", Title, MB_OK | MB_ICONERROR);
+			MessageBox(window->Handle, "Failed to find the process", Title, MB_OK | MB_ICONERROR);
+			break;
+
+		case -1:
+			window->Children[1].Disable();
+			MessageBox(window->Handle, "Failed to attach to the process\n(Incompatible architecture)", Title, MB_OK | MB_ICONERROR);
+			break;
 		}
 		return 0;
 	}));

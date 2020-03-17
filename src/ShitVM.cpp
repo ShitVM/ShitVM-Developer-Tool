@@ -7,7 +7,7 @@
 HANDLE ShitVMProcess;
 std::string ShitVMProcessIdString = "ShitVM Process Id: (Not Found)";
 
-bool FindShitVMProcess() noexcept {
+int FindShitVMProcess() noexcept {
 	const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
 	PROCESSENTRY32 entry;
@@ -17,15 +17,25 @@ bool FindShitVMProcess() noexcept {
 			if (std::strcmp("ShitVM.exe", entry.szExeFile) != 0) continue;
 
 			ShitVMProcess = OpenProcess(PROCESS_ALL_ACCESS, false, entry.th32ProcessID);
-			ShitVMProcessIdString = "ShitVM Process Id: " + std::to_string(GetProcessId(ShitVMProcess));
+
+			BOOL currentProcessWow64, shitVMProcessWow64;
+			IsWow64Process(GetCurrentProcess(), &currentProcessWow64);
+			IsWow64Process(ShitVMProcess, &shitVMProcessWow64);
+			if (currentProcessWow64 == shitVMProcessWow64) {
+				ShitVMProcessIdString = "ShitVM Process Id: " + std::to_string(GetProcessId(ShitVMProcess));
+			} else {
+				ShitVMProcess = nullptr;
+				CloseHandle(ShitVMProcess);
+			}
+
 			CloseHandle(snapshot);
-			return true;
+			return (currentProcessWow64 == shitVMProcessWow64) - 1;
 		} while (Process32Next(snapshot, &entry));
 	}
 
 	CloseHandle(snapshot);
 	ShitVMProcessIdString = "ShitVM Process Id: (Not Found)";
-	return false;
+	return 1;
 }
 
 bool CheckShitVMProcessValid() noexcept {

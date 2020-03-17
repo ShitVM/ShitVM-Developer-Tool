@@ -8,7 +8,7 @@
 extern HANDLE ShitVMProcess;
 extern std::string ShitVMProcessIdString;
 
-bool FindShitVMProcess() noexcept;
+int FindShitVMProcess() noexcept;
 bool CheckShitVMProcessValid() noexcept;
 template<typename T>
 bool ReadShitVMMemory(T& buffer, unsigned long long address) noexcept;
