@@ -46,19 +46,30 @@ LRESULT Window::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam
 		EndPaint(handle, &ps);
 		return 0;
 	}
+	case WM_DESTROY: {
+		Window* const window = reinterpret_cast<Window*>(GetWindowLongPtr(handle, GWLP_USERDATA));
+		window->Handle = nullptr;
+		window->Children.clear();
+		return 0;
 	}
-
+	}
 	return DefWindowProc(handle, message, wParam, lParam);
 }
 
 void Window::Create() {
+	Create(Title);
+}
+void Window::Create(const char* title) {
 	if (!Handle) {
-		Handle = CreateWindow("window", Title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, nullptr, nullptr, Instance, nullptr);
+		Handle = CreateWindow("window", title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, nullptr, nullptr, Instance, nullptr);
 		if (!Handle) throw std::runtime_error("Failed to create the window");
 		SetWindowLongPtr(Handle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
 		Initialize();
 	}
+}
+bool Window::IsCreated() const noexcept {
+	return Handle != nullptr;
 }
 LRESULT Window::Send(UINT message, WPARAM wParam, LPARAM lParam) {
 	return SendMessage(Handle, message, wParam, lParam);
@@ -78,7 +89,7 @@ void Window::Paint(HDC) {}
 Child& Window::AddChild(const Child& child) {
 	Child& result = Children.emplace_back(child);
 	SetParent(child.Handle, Handle);
-	SetMenu(child.Handle, reinterpret_cast<HMENU>(Children.size() - 1));
+	SetWindowLongPtr(child.Handle, GWLP_ID, static_cast<LONG_PTR>(Children.size() - 1));
 	return result;
 }
 

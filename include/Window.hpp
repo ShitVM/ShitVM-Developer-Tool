@@ -26,6 +26,8 @@ public:
 	virtual LRESULT Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam);
 
 	void Create();
+	void Create(const char* title);
+	bool IsCreated() const noexcept;
 	LRESULT Send(UINT message, WPARAM wParam, LPARAM lParam);
 	void Show(int value);
 

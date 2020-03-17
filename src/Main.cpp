@@ -7,7 +7,7 @@
 
 #include <Windows.h>
 
-MainWindow* mainWindow;
+MainWindow mainWindow;
 int counter = 0;
 
 int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow) {
@@ -16,16 +16,16 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow) {
 		return EXIT_FAILURE;
 	}
 
-	mainWindow = new MainWindow();
-	mainWindow->Show(cmdShow);
+	mainWindow.Show(cmdShow);
 
 	return Run([]() {
 		++counter;
 		if (counter == 10000) {
 			counter = 0;
 			if (!CheckShitVMProcessValid()) {
-				mainWindow->Invalidate();
-				MessageBox(nullptr, "ShitVM Process is dead", Title, MB_OK | MB_ICONINFORMATION);
+				mainWindow.Invalidate();
+				mainWindow.Children[1].Disable();
+				MessageBox(mainWindow.Handle, "ShitVM Process is dead", Title, MB_OK | MB_ICONINFORMATION);
 			}
 		}
 	});
