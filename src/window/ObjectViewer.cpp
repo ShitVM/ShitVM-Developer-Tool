@@ -106,7 +106,7 @@ void ObjectView::SearchObject() {
 
 	std::uint8_t typeBuffer[sizeof(svm::ManagedHeapInfo) + sizeof(svm::Type) + sizeof(svm::TypeInfo)];
 	svm::ManagedHeapInfo* const info = reinterpret_cast<svm::ManagedHeapInfo*>(typeBuffer);
-	svm::Type* const type = reinterpret_cast<svm::Type*>(typeBuffer + sizeof(svm::Type));
+	svm::Type* const type = reinterpret_cast<svm::Type*>(typeBuffer + sizeof(svm::ManagedHeapInfo));
 	svm::TypeInfo* const typeInfo = reinterpret_cast<svm::TypeInfo*>(typeBuffer + sizeof(svm::ManagedHeapInfo) + sizeof(svm::Type));
 
 	if (isManaged) {
@@ -172,7 +172,7 @@ void ObjectView::SearchObject() {
 		oss << "Fields:\n";
 
 		std::uint8_t* const structBuffer = new std::uint8_t[typeInfo->Size];
-		ReadShitVMMemory(structBuffer, type, typeInfo->Size);
+		ReadShitVMMemory(structBuffer, reinterpret_cast<void*>(addressInt + (isManaged ? sizeof(svm::ManagedHeapInfo) : 0)), typeInfo->Size);
 
 		std::uint8_t fieldTypeBuffer[sizeof(svm::TypeInfo)];
 		svm::Type* fieldType = nullptr;
