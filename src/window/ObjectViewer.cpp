@@ -10,6 +10,10 @@
 #include <cstdint>
 #include <sstream>
 
+#ifdef _MSC_VER
+#	pragma warning(disable: 4100)
+#endif
+
 LRESULT ObjectView::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
 	case WM_GETMINMAXINFO: {
@@ -23,11 +27,7 @@ LRESULT ObjectView::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lP
 	case WM_CTLCOLORSTATIC:
 	case WM_CTLCOLOREDIT:
 	case WM_CTLCOLORLISTBOX: {
-		const HWND handle = reinterpret_cast<HWND>(lParam);
-		COMBOBOXINFO ci = { sizeof(COMBOBOXINFO) };
-		GetComboBoxInfo(Children[1].Handle, &ci);
-
-		if (handle == Children[1].Handle) {
+		if (reinterpret_cast<HWND>(lParam) == Children[1].Handle) {
 			const HDC hdc = reinterpret_cast<HDC>(wParam);
 			SetBkColor(hdc, RGB(255, 255, 255));
 			return reinterpret_cast<LRESULT>(m_Brush);
@@ -44,7 +44,7 @@ void ObjectView::Initialize() {
 
 	AddChild(CreateCheckBox(this, "Managed", 290, 12, 80, 25, nullptr));
 
-	AddChild(CreateButton(this, "Search", 380, 12, 100, 25, CallbackLambda(&) {
+	AddChild(CreateButton(this, "Search", 380, 12, 100, 25, CallbackLambda(this) {
 		SearchObject();
 		return 0;
 	}));
@@ -78,7 +78,6 @@ namespace {
 			result = cstr;
 		} else {
 			do {
-				char c;
 				ReadShitVMMemory(c, cstr++);
 				result.push_back(c);
 			} while (result.back());
@@ -102,25 +101,20 @@ void ObjectView::SearchObject() {
 	char addressBuffer[33];
 	GetWindowText(Children[0].Handle, addressBuffer, sizeof(addressBuffer));
 
-	unsigned long long addressInt = std::stoull(addressBuffer, nullptr, 16);
+	const unsigned long long addressInt = std::stoull(addressBuffer, nullptr, 16);
 	const bool isManaged = SendMessage(Children[1].Handle, BM_GETCHECK, 0, 0) == BST_CHECKED;
 
-	std::uint8_t buffer[sizeof(svm::ManagedHeapInfo) + sizeof(svm::Type) + sizeof(svm::TypeInfo)];
-	svm::ManagedHeapInfo* info = nullptr;
-	svm::Type* type = nullptr;
-	svm::TypeInfo* typeInfo = nullptr;
+	std::uint8_t typeBuffer[sizeof(svm::ManagedHeapInfo) + sizeof(svm::Type) + sizeof(svm::TypeInfo)];
+	svm::ManagedHeapInfo* const info = reinterpret_cast<svm::ManagedHeapInfo*>(typeBuffer);
+	svm::Type* const type = reinterpret_cast<svm::Type*>(typeBuffer + sizeof(svm::Type));
+	svm::TypeInfo* const typeInfo = reinterpret_cast<svm::TypeInfo*>(typeBuffer + sizeof(svm::ManagedHeapInfo) + sizeof(svm::Type));
 
-	if (!isManaged) {
-		type = reinterpret_cast<svm::Type*>(buffer);
-		typeInfo = reinterpret_cast<svm::TypeInfo*>(buffer + sizeof(svm::Type));
-		ReadShitVMMemory(*type, addressInt);
-		ReadShitVMMemory(*typeInfo, type->GetPointer());
-	} else {
-		info = reinterpret_cast<svm::ManagedHeapInfo*>(buffer);
-		type = reinterpret_cast<svm::Type*>(buffer + sizeof(svm::Type));
-		typeInfo = reinterpret_cast<svm::TypeInfo*>(buffer + sizeof(svm::ManagedHeapInfo) + sizeof(svm::Type));
+	if (isManaged) {
 		ReadShitVMMemory(*info, addressInt);
 		ReadShitVMMemory(*type, addressInt + sizeof(svm::ManagedHeapInfo));
+		ReadShitVMMemory(*typeInfo, type->GetPointer());
+	} else {
+		ReadShitVMMemory(*type, addressInt);
 		ReadShitVMMemory(*typeInfo, type->GetPointer());
 	}
 
@@ -143,25 +137,23 @@ void ObjectView::SearchObject() {
 		} else {
 			m_ObjectType = "Type: gcpointer";
 		}
-		void* const address = reinterpret_cast<svm::PointerObject*>(dataBuffer)->Value;
+
+		void* const target = reinterpret_cast<svm::PointerObject*>(dataBuffer)->Value;
 		std::ostringstream oss;
-		oss << "Value: 0x" << address;
+		oss << "Value: 0x" << target;
 		m_ObjectValue = oss.str();
 
-		if (address) {
-			AddChild(CreateButton(this, "View", 380, 52, 100, 25, CallbackLambda(code, address) {
+		if (target) {
+			AddChild(CreateButton(this, "View", 380, 52, 100, 25, CallbackLambda(code, target) {
 				std::ostringstream oss;
-				oss << "0x" << address;
-				const std::string addressStr = oss.str();
-				SetWindowText(window->Children[0].Handle, addressStr.c_str());
-				if (code == 7) {
-					SendMessage(window->Children[1].Handle, BM_SETCHECK, BST_UNCHECKED, 0);
-				} else {
-					SendMessage(window->Children[1].Handle, BM_SETCHECK, BST_CHECKED, 0);
-				}
+				oss << "0x" << target;
+
+				SetWindowText(window->Children[0].Handle, oss.str().c_str());
+				SendMessage(window->Children[1].Handle, BM_SETCHECK, code == 8 ? BST_CHECKED : BST_UNCHECKED, 0);
 				return window->Send(WM_COMMAND, MAKEWPARAM(2, BN_CLICKED), 0);
 			}));
 		}
+
 		break;
 	}
 	default: {
@@ -170,6 +162,7 @@ void ObjectView::SearchObject() {
 		} else {
 			m_ObjectType = "Type: (Unknown)";
 		}
+
 		break;
 	}
 	}
@@ -179,11 +172,11 @@ void ObjectView::SearchObject() {
 		oss << "Fields:\n";
 
 		std::uint8_t* const structBuffer = new std::uint8_t[typeInfo->Size];
-		ReadShitVMMemory(structBuffer, reinterpret_cast<const void*>(addressInt + sizeof(svm::ManagedHeapInfo)), typeInfo->Size);
+		ReadShitVMMemory(structBuffer, type, typeInfo->Size);
 
+		std::uint8_t fieldTypeBuffer[sizeof(svm::TypeInfo)];
 		svm::Type* fieldType = nullptr;
-		std::uint8_t fieldTypeInfoBuffer[sizeof(svm::TypeInfo)];
-		svm::TypeInfo* fieldTypeInfo = reinterpret_cast<svm::TypeInfo*>(fieldTypeInfoBuffer);
+		svm::TypeInfo* const fieldTypeInfo = reinterpret_cast<svm::TypeInfo*>(fieldTypeBuffer);
 
 		std::uint32_t i = 0;
 		unsigned long long offset = sizeof(svm::Type);
@@ -203,22 +196,20 @@ void ObjectView::SearchObject() {
 			case 6: oss << "Value: " << reinterpret_cast<svm::DoubleObject*>(fieldType)->Value; break;
 			case 7:
 			case 8: {
-				void* const address = reinterpret_cast<svm::PointerObject*>(fieldType)->Value;
-				oss << "Value: 0x" << address;
-				if (address) {
-					AddChild(CreateButton(this, "View", 380, 82 + i * 15, 100, 25, CallbackLambda(fieldCode, address) {
+				void* const target = reinterpret_cast<svm::PointerObject*>(fieldType)->Value;
+				oss << "Value: 0x" << target;
+
+				if (target) {
+					AddChild(CreateButton(this, "View", 380, 82 + i * 15, 100, 25, CallbackLambda(fieldCode, target) {
 						std::ostringstream oss;
-						oss << "0x" << address;
-						const std::string addressStr = oss.str();
-						SetWindowText(window->Children[0].Handle, addressStr.c_str());
-						if (fieldCode == 7) {
-							SendMessage(window->Children[1].Handle, BM_SETCHECK, BST_UNCHECKED, 0);
-						} else {
-							SendMessage(window->Children[1].Handle, BM_SETCHECK, BST_CHECKED, 0);
-						}
+						oss << "0x" << target;
+
+						SetWindowText(window->Children[0].Handle, oss.str().c_str());
+						SendMessage(window->Children[1].Handle, BM_SETCHECK, fieldCode == 8 ? BST_CHECKED : BST_UNCHECKED, 0);
 						return window->Send(WM_COMMAND, MAKEWPARAM(2, BN_CLICKED), 0);
 					}));
 				}
+
 				break;
 			}
 			default:
@@ -226,11 +217,12 @@ void ObjectView::SearchObject() {
 				break;
 			}
 
-			oss << "\n";
+			oss << '\n';
 			offset += fieldTypeInfo->Size;
 		}
 
 		m_ObjectValue = oss.str();
+		delete[] structBuffer;
 	}
 
 	Invalidate();

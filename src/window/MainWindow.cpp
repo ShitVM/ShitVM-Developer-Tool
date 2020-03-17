@@ -5,7 +5,10 @@
 #include <window/ObjectViewer.hpp>
 
 #include <cstdlib>
-#include <sstream>
+
+#ifdef _MSC_VER
+#	pragma warning(disable: 4100)
+#endif
 
 LRESULT MainWindow::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {

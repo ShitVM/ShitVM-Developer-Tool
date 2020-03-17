@@ -1,6 +1,5 @@
 #include <Application.hpp>
 
-#include <ShitVM.hpp>
 #include <Window.hpp>
 
 HINSTANCE Instance = nullptr;

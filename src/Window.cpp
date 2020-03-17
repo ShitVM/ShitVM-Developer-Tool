@@ -4,7 +4,6 @@
 
 #include <stdexcept>
 #include <utility>
-#include "..\include\Window.hpp"
 
 Window::Window(Window&& window) noexcept
 	: Handle(window.Handle), Children(std::move(window.Children)) {
@@ -43,6 +42,7 @@ LRESULT Window::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam
 		if (callback) return callback(this, message, wParam, lParam);
 		else return 0;
 	}
+
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		const HDC dc = BeginPaint(handle, &ps);
@@ -50,6 +50,7 @@ LRESULT Window::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam
 		EndPaint(handle, &ps);
 		return 0;
 	}
+
 	case WM_DESTROY: {
 		Window* const window = reinterpret_cast<Window*>(GetWindowLongPtr(handle, GWLP_USERDATA));
 		window->Handle = nullptr;

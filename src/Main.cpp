@@ -8,7 +8,7 @@
 #include <Windows.h>
 
 MainWindow mainWindow;
-int counter = 0;
+int counter;
 
 int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow) {
 	if (!Initialize(instance, cmdShow)) {
