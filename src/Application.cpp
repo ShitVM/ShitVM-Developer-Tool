@@ -1,5 +1,6 @@
 #include <Application.hpp>
 
+#include <ShitVM.hpp>
 #include <Window.hpp>
 
 HINSTANCE Instance = nullptr;
@@ -12,11 +13,17 @@ bool Initialize(HINSTANCE instance, int cmdShow) noexcept {
 	return RegisterWindow();
 }
 
-int Run() {
+int Run(void(*other)()) {
 	MSG message;
-	while (GetMessage(&message, nullptr, 0, 0)) {
-		TranslateMessage(&message);
-		DispatchMessage(&message);
+	while (true) {
+		if (PeekMessage(&message, nullptr, 0, 0, PM_REMOVE)) {
+			if (message.message == WM_QUIT) break;
+
+			TranslateMessage(&message);
+			DispatchMessage(&message);
+		} else if (other) {
+			other();
+		}
 	}
 
 	return static_cast<int>(message.wParam);

@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include <utility>
+#include "..\include\Window.hpp"
 
 Window::Window(Window&& window) noexcept
 	: Handle(window.Handle), Children(std::move(window.Children)) {
@@ -38,6 +39,13 @@ Window::operator bool() const noexcept {
 LRESULT Window::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
 	case WM_COMMAND: return Children[LOWORD(wParam)].Callback(this, message, wParam, lParam);
+	case WM_PAINT: {
+		PAINTSTRUCT ps;
+		const HDC dc = BeginPaint(handle, &ps);
+		Paint(dc);
+		EndPaint(handle, &ps);
+		return 0;
+	}
 	}
 
 	return DefWindowProc(handle, message, wParam, lParam);
@@ -52,10 +60,20 @@ void Window::Create() {
 		Initialize();
 	}
 }
+LRESULT Window::Send(UINT message, WPARAM wParam, LPARAM lParam) {
+	return SendMessage(Handle, message, wParam, lParam);
+}
 void Window::Show(int value) {
 	Create();
 	ShowWindow(Handle, value);
 }
+
+void Window::Invalidate() {
+	InvalidateRect(Handle, nullptr, true);
+}
+
+void Window::Initialize() {}
+void Window::Paint(HDC) {}
 
 Child& Window::AddChild(const Child& child) {
 	Child& result = Children.emplace_back(child);

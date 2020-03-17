@@ -4,6 +4,7 @@
 #include <ShitVM.hpp>
 
 #include <cstdlib>
+#include <sstream>
 
 LRESULT MainWindow::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
@@ -22,13 +23,17 @@ LRESULT MainWindow::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lP
 }
 
 void MainWindow::Initialize() {
-	AddChild(CreateButton(this, "Find ShitVM Process", 15, 15, 200, 50, CallbackLambda() {
+	AddChild(CreateButton(this, "Find ShitVM Process", 15, 40, 200, 50, CallbackLambda() {
 		const bool result = FindShitVMProcess();
+		window->Invalidate();
 		if (result) {
 			MessageBox(nullptr, "Succeed to find the ShitVM process", Title, MB_OK | MB_ICONINFORMATION);
 		} else {
 			MessageBox(nullptr, "Failed to find the ShitVM process", Title, MB_OK | MB_ICONERROR);
 		}
 		return 0;
-	})).SetFont(static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
+	}));
+}
+void MainWindow::Paint(HDC dc) {
+	TextOut(dc, 15, 15, ShitVMProcessIdString.c_str(), static_cast<int>(ShitVMProcessIdString.size()));
 }

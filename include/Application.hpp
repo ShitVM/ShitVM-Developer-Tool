@@ -8,4 +8,4 @@ extern int CmdShow;
 
 bool Initialize(HINSTANCE instance, int cmdShow) noexcept;
 
-int Run();
+int Run(void(*other)());

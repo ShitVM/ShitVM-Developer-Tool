@@ -26,9 +26,16 @@ public:
 	virtual LRESULT Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lParam);
 
 	void Create();
-	virtual void Initialize() = 0;
+	LRESULT Send(UINT message, WPARAM wParam, LPARAM lParam);
 	void Show(int value);
 
+	void Invalidate();
+
+protected:
+	virtual void Initialize();
+	virtual void Paint(HDC dc);
+	
+public:
 	Child& AddChild(const Child& child);
 };
 
