@@ -1,5 +1,6 @@
 #include <ShitVM.hpp>
 
+#include <cstdint>
 #include <cstring>
 
 #include <TlHelp32.h>
@@ -54,4 +55,15 @@ bool CheckShitVMProcessValid() noexcept {
 
 bool ReadShitVMMemory(void* buffer, const void* address, std::size_t size) {
 	return ReadProcessMemory(ShitVMProcess, address, buffer, size, nullptr);
+}
+bool CheckReadableShitVMMemory(const void* address, std::size_t size) {
+	MEMORY_BASIC_INFORMATION info;
+	if (!VirtualQueryEx(ShitVMProcess, address, &info, sizeof(info))) return false;
+	else if (info.State != MEM_COMMIT) return false;
+	else if (info.Protect == PAGE_NOACCESS || info.Protect == PAGE_EXECUTE) return false;
+
+	const std::size_t offset = reinterpret_cast<std::uintptr_t>(address) - reinterpret_cast<std::uintptr_t>(info.AllocationBase);
+	const std::size_t postBytes = info.RegionSize - offset;
+	if (size > postBytes) return CheckReadableShitVMMemory(static_cast<const std::uint8_t*>(address) + postBytes, size - postBytes);
+	else return true;
 }

@@ -34,6 +34,11 @@ LRESULT ObjectView::Callback(HWND handle, UINT message, WPARAM wParam, LPARAM lP
 		}
 		break;
 	}
+
+	case WM_DESTROY:
+		m_ObjectType = "Type: (Not searched)";
+		m_ObjectValue.clear();
+		break;
 	}
 	return Window::Callback(handle, message, wParam, lParam);
 }
@@ -88,34 +93,55 @@ namespace {
 }
 
 void ObjectView::SearchObject() {
-	if (!ShitVMProcess) {
-		MessageBox(Handle, "ShitVM Process is dead", Title, MB_OK | MB_ICONERROR);
-		return;
-	}
-
 	for (std::size_t i = 3; i < Children.size(); ++i) {
 		DestroyWindow(Children[i].Handle);
 	}
 	Children.erase(Children.begin() + 3, Children.end());
 
+	if (!ShitVMProcess) {
+		m_ObjectType = "Type: (Not searched)";
+		m_ObjectValue.clear();
+		Invalidate();
+		MessageBox(Handle, "Dead process", "Object Viewer", MB_OK | MB_ICONERROR);
+		return;
+	}
+	
 	char addressBuffer[33];
 	GetWindowText(Children[0].Handle, addressBuffer, sizeof(addressBuffer));
 
 	const unsigned long long addressInt = std::stoull(addressBuffer, nullptr, 16);
 	const bool isManaged = SendMessage(Children[1].Handle, BM_GETCHECK, 0, 0) == BST_CHECKED;
 
+	if (!CheckReadableShitVMMemory(reinterpret_cast<void*>(addressInt), sizeof(svm::Type) + (isManaged ? sizeof(svm::ManagedHeapInfo) : 0))) {
+		m_ObjectType = "Type: (Not searched)";
+		m_ObjectValue.clear();
+		Invalidate();
+		MessageBox(Handle, "Unreadable address", "Object Viewer", MB_OK | MB_ICONERROR);
+		return;
+	}
+
 	std::uint8_t typeBuffer[sizeof(svm::ManagedHeapInfo) + sizeof(svm::Type) + sizeof(svm::TypeInfo)];
 	svm::ManagedHeapInfo* const info = reinterpret_cast<svm::ManagedHeapInfo*>(typeBuffer);
 	svm::Type* const type = reinterpret_cast<svm::Type*>(typeBuffer + sizeof(svm::ManagedHeapInfo));
 	svm::TypeInfo* const typeInfo = reinterpret_cast<svm::TypeInfo*>(typeBuffer + sizeof(svm::ManagedHeapInfo) + sizeof(svm::Type));
 
+	bool success = true;
+
 	if (isManaged) {
 		ReadShitVMMemory(*info, addressInt);
 		ReadShitVMMemory(*type, addressInt + sizeof(svm::ManagedHeapInfo));
-		ReadShitVMMemory(*typeInfo, type->GetPointer());
+		success = ReadShitVMMemory(*typeInfo, type->GetPointer());
 	} else {
 		ReadShitVMMemory(*type, addressInt);
-		ReadShitVMMemory(*typeInfo, type->GetPointer());
+		success = ReadShitVMMemory(*typeInfo, type->GetPointer());
+	}
+
+	if (!success) {
+		m_ObjectType = "Type: (Not searched)";
+		m_ObjectValue.clear();
+		Invalidate();
+		MessageBox(Handle, "Unreadable address", "Object Viewer", MB_OK | MB_ICONERROR);
+		return;
 	}
 
 	const std::uint32_t code = static_cast<std::uint32_t>(typeInfo->Code);
