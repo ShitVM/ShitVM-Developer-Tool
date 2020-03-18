@@ -105,7 +105,7 @@ void ObjectView::SearchObject() {
 		MessageBox(Handle, "Dead process", "Object Viewer", MB_OK | MB_ICONERROR);
 		return;
 	}
-	
+
 	char addressBuffer[33];
 	GetWindowText(Children[0].Handle, addressBuffer, sizeof(addressBuffer));
 
